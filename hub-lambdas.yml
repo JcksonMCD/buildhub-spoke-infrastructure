@@ -1,10 +1,122 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Hub Database Setup - Part 2 of Hub and Spoke Architecture'
+Description: 'Hub Lambda Functions - Part 3 of Hub and Spoke Architecture'
 
 Parameters:
   Environment:
     Type: String
     Default: "Development"
     Description: Environment name
-    
+
 Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "hub-lambda-execution-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        - Key: Name
+          Value: "hub-lambda-execution-role"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "compute"
+
+  LambdaThing1:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "hub-thing1"
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          print("Hello World 1")
+      VpcConfig:
+        SubnetIds:
+          - !ImportValue hub-private-subnet-1-id
+          - !ImportValue hub-private-subnet-2-id
+        SecurityGroupIds:
+          - !ImportValue hub-security-group-id
+      Tags:
+        - Key: Name
+          Value: "hub-thing1"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "compute"
+
+  LambdaThing2:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "hub-thing2"
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          print("Hello World 2")
+      VpcConfig:
+        SubnetIds:
+          - !ImportValue hub-private-subnet-1-id
+          - !ImportValue hub-private-subnet-2-id
+        SecurityGroupIds:
+          - !ImportValue hub-security-group-id
+      Tags:
+        - Key: Name
+          Value: "hub-thing2"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "compute"
+
+Outputs:
+  LambdaThing1Arn:
+    Description: Lambda Thing1 ARN
+    Value: !GetAtt LambdaThing1.Arn
+    Export:
+      Name: "hub-lambda-thing1-arn"
+  
+  LambdaThing2Arn:
+    Description: Lambda Thing2 ARN
+    Value: !GetAtt LambdaThing2.Arn
+    Export:
+      Name: "hub-lambda-thing2-arn"
+  
+  LambdaExecutionRoleArn:
+    Description: Lambda Execution Role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: "hub-lambda-execution-role-arn"
