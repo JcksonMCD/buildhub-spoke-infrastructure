@@ -1,14 +1,116 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Hub Database Setup - Part 2 of Hub and Spoke Architecture'
+Description: 'Hub Database Infrastructure - Part 2 of Hub and Spoke Architecture'
 
 Parameters:
   Environment:
     Type: String
     Default: "Development"
     Description: Environment name
-    
+  
+  SkipRDS:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Skip RDS creation if you don't have permissions
+
+Conditions:
+  CreateRDS: !Equals [!Ref SkipRDS, "false"]
+
 Resources:
-  HubRDS:
-    Type: AWS::RDS::DBInstance
+  HubDatabaseSecret:
+    Type: AWS::SecretsManager::Secret
     Properties:
-      
+      Name: "hub-database-secret"
+      Description: Database credentials for hub
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+      Tags:
+        - Key: Name
+          Value: "hub-database-secret"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "database"
+
+  HubDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Condition: CreateRDS
+    Properties:
+      DBSubnetGroupDescription: Subnet group for hub database
+      SubnetIds:
+        - !ImportValue hub-private-subnet-1-id
+        - !ImportValue hub-private-subnet-2-id
+      Tags:
+        - Key: Name
+          Value: "hub-db-subnet-group"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "database"
+
+  HubDatabase:
+    Type: AWS::RDS::DBInstance
+    Condition: CreateRDS
+    Properties:
+      DBInstanceIdentifier: "hub-database"
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      EngineVersion: '8.0'
+      MasterUsername: admin
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${HubDatabaseSecret}:SecretString:password}}"
+      AllocatedStorage: 20
+      DBSubnetGroupName: !Ref HubDBSubnetGroup
+      VPCSecurityGroups:
+        - !ImportValue hub-security-group-id
+      BackupRetentionPeriod: 0  # Disable backups for development
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageEncrypted: true  
+      Tags:
+        - Key: Name
+          Value: "hub-database"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "database"
+
+Outputs:
+  HubDatabaseEndpoint:
+    Condition: CreateRDS
+    Description: Hub Database Endpoint
+    Value: !GetAtt HubDatabase.Endpoint.Address
+    Export:
+      Name: "hub-database-endpoint"
+  
+  HubDatabaseSecretArn:
+    Description: Hub Database Secret ARN
+    Value: !Ref HubDatabaseSecret
+    Export:
+      Name: "hub-database-secret-arn"
