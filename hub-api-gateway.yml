@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Hub API Gateway - Part 4 of Hub and Spoke Architecture'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "Development"
+    Description: Environment name
+
+Resources:
+  HubApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "hub-api-gateway"
+      Description: Hub API Gateway for lambda functions
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Tags:
+        - Key: Name
+          Value: "hub-api-gateway"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "api"
+
+  Thing1Resource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref HubApiGateway
+      ParentId: !GetAtt HubApiGateway.RootResourceId
+      PathPart: "thing1"
+
+  Thing1Method:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref HubApiGateway
+      ResourceId: !Ref Thing1Resource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations"
+          - LambdaArn: !ImportValue hub-lambda-thing1-arn
+
+  Thing2Resource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref HubApiGateway
+      ParentId: !GetAtt HubApiGateway.RootResourceId
+      PathPart: "thing2"
+
+  Thing2Method:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref HubApiGateway
+      ResourceId: !Ref Thing2Resource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations"
+          - LambdaArn: !ImportValue hub-lambda-thing2-arn
+
+  Thing1LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !ImportValue hub-lambda-thing1-arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HubApiGateway}/*/GET/thing1"
+
+  Thing2LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !ImportValue hub-lambda-thing2-arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HubApiGateway}/*/GET/thing2"
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - Thing1Method
+      - Thing2Method
+    Properties:
+      RestApiId: !Ref HubApiGateway
+      Description: "Development deployment"
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref HubApiGateway
+      DeploymentId: !Ref ApiDeployment
+      StageName: !Ref Environment
+      Description: !Sub "${Environment} stage"
+      Tags:
+        - Key: Name
+          Value: !Sub "hub-api-gateway-${Environment}-stage"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "api"
+
+Outputs:
+  ApiGatewayId:
+    Description: API Gateway ID
+    Value: !Ref HubApiGateway
+    Export:
+      Name: "hub-api-gateway-id"
+  
+  ApiGatewayUrl:
+    Description: API Gateway URL
+    Value: !Sub "https://${HubApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+    Export:
+      Name: "hub-api-gateway-url"
+  
+  Thing1Endpoint:
+    Description: Thing1 API Endpoint
+    Value: !Sub "https://${HubApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/thing1"
+  
+  Thing2Endpoint:
+    Description: Thing2 API Endpoint
+    Value: !Sub "https://${HubApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/thing2"
