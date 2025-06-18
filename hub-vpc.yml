@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Hub VPC Infrastructure - Part 1 of Hub and Spoke Architecture'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "Development"
+    Description: Environment name
+    
+  OfficeIP:
+    Type: String
+    Default: "203.0.113.0/32"
+    Description: Office IP address for security group access
+
+Resources:
+  HubVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: "hub-vpc"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "networking"
+
+  HubPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref HubVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: "hub-private-subnet-1"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "networking"
+
+  HubPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref HubVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: "hub-private-subnet-2"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "networking"
+
+  # Rules missing from security group for now
+  HubSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for hub resources - allows access from spokes only
+      VpcId: !Ref HubVPC
+      Tags:
+        - Key: Name
+          Value: "hub-security-group"
+        - Key: TagPolicyVersion
+          Value: "1"
+        - Key: ProjectCode
+          Value: "ADO-ACA026"
+        - Key: Owner
+          Value: "jackson.macdonald@answerdigital.com"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ConfigTool
+          Value: "CloudFormation"
+        - Key: Component
+          Value: "security"
+
+Outputs:
+  HubVPCId:
+    Description: Hub VPC ID
+    Value: !Ref HubVPC
+    Export:
+      Name: "hub-vpc-id"
+  
+  HubPrivateSubnet1Id:
+    Description: Hub Private Subnet 1 ID
+    Value: !Ref HubPrivateSubnet1
+    Export:
+      Name: "hub-private-subnet-1-id"
+  
+  HubPrivateSubnet2Id:
+    Description: Hub Private Subnet 2 ID
+    Value: !Ref HubPrivateSubnet2
+    Export:
+      Name: "hub-private-subnet-2-id"
+  
+  HubSecurityGroupId:
+    Description: Hub Security Group ID
+    Value: !Ref HubSecurityGroup
+    Export:
+      Name: "hub-security-group-id"
