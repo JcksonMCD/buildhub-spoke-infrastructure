@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Hub Database Setup - Part 2 of Hub and Spoke Architecture'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "Development"
+    Description: Environment name
+    
