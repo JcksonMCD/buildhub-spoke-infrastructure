@@ -47,7 +47,8 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          print("Hello World 1")
+          def lambda_handler(event, context):
+            print("Hello World 1")
       VpcConfig:
         SubnetIds:
           - !ImportValue hub-private-subnet-1-id
@@ -79,7 +80,8 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          print("Hello World 2")
+          def lambda_handler(event, context):
+            print("Hello World 2")
       VpcConfig:
         SubnetIds:
           - !ImportValue hub-private-subnet-1-id
