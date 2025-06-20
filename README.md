@@ -13,3 +13,4 @@ The spokes should be spun up depending on a input list. So a dynamic amount of s
 The list will be a list of names, ["Trust1", "Trust2"]
 Make sure everything is tagged. https://answerconsulting.jira.com/wiki/spaces/ARCH/pages/3204907011/Tagging+Policy a gist of what tags you should be including.
 All work PR to me and we can go over it.
+
